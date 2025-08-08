@@ -24,7 +24,7 @@ function generateLink() {
 
   localStorage.setItem(clientKey, JSON.stringify(sessionData));
 
-  const link = `${BASE_URL}/rate.html?client=${encodeURIComponent(clientKey)}`;
+  const link = `${BASE_URL}/clientreview/rate.html?client=${encodeURIComponent(clientKey)}`;
   document.getElementById("generatedLink").innerHTML = `<a href="${link}" target="_blank">${link}</a>`;
 }
 

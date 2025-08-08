@@ -1,6 +1,6 @@
 // scripts.js (Client Rating Tool)
 
-const BASE_URL = "https://maskill6.github.io/";
+const BASE_URL = "https://maskill6.github.io/clientreview.html";
 
 function generateLink() {
   const clientName = document.getElementById("clientName").value.trim();
@@ -24,7 +24,7 @@ function generateLink() {
 
   localStorage.setItem(clientKey, JSON.stringify(sessionData));
 
-  const link = `${BASE_URL}/clientreview/rate.html?client=${encodeURIComponent(clientKey)}`;
+  const link = `${BASE_URL}/clientreview.html/rate.html?client=${encodeURIComponent(clientKey)}`;
   document.getElementById("generatedLink").innerHTML = `<a href="${link}" target="_blank">${link}</a>`;
 }
 

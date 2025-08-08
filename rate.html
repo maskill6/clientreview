@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rate Employees</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .employee-rating {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 0.5rem;
+    }
+
+    .employee-name {
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin-right: 1rem;
+    }
+
+    .stars {
+      display: inline-flex;
+      flex-direction: row-reverse;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+
+    .stars input[type="radio"] {
+      display: none;
+    }
+
+    .stars label {
+      font-size: 1.5rem;
+      color: lightgray;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .stars input:checked ~ label,
+    .stars label:hover,
+    .stars label:hover ~ label {
+      color: gold;
+    }
+
+    .feedback-section,
+    .rehire-section {
+      margin-top: 0.75rem;
+    }
+
+    fieldset {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+    }
+
+    legend {
+      padding: 0 0.5rem;
+    }
+
+    textarea,
+    select {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.25rem;
+    }
+
+    button {
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Rate Each Employee</h1>
+    <form id="ratingForm"></form>
+    <button type="button" id="submitRatings">Submit Ratings</button>
+  </div>
+
+  <script>
+    const form = document.getElementById("ratingForm");
+    const params = new URLSearchParams(window.location.search);
+    const clientKey = params.get("client");
+    const sessionData = JSON.parse(localStorage.getItem(clientKey));
+
+    if (!sessionData || !sessionData.employeeList) {
+      form.innerHTML = `<p style='color:red;'>No employee data found.</p>`;
+      throw new Error("Missing session data");
+    }
+
+    sessionData.employeeList.forEach((name, index) => {
+      const fieldset = document.createElement("fieldset");
+      fieldset.innerHTML = `
+        <legend class="employee-rating">
+          <span class="employee-name">${name}</span>
+          <div class="stars">
+            ${[1,2,3,4,5].map(i => `
+              <input type="radio" id="star${i}-${index}" name="rating-${index}" value="${i}">
+              <label for="star${i}-${index}" title="${i} star">★</label>
+            `).reverse().join('')}
+          </div>
+        </legend>
+
+        <div class="feedback-section" id="feedback-${index}" style="display:none;">
+          <label for="comment-${index}">Please explain the rating:</label>
+          <textarea id="comment-${index}" name="comment-${index}" rows="3"></textarea>
+        </div>
+
+        <div class="rehire-section" id="rehire-${index}" style="display:none;">
+          <label for="rehire-${index}">Would you rehire this employee next season?</label>
+          <select id="rehire-${index}" name="rehire-${index}">
+            <option value="">-- Select --</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+      `;
+      form.appendChild(fieldset);
+    });
+
+    form.addEventListener("change", (e) => {
+      if (!e.target.matches("input[type='radio']")) return;
+      const idx = e.target.name.split("-")[1];
+      const val = parseInt(e.target.value);
+
+      document.getElementById(`feedback-${idx}`).style.display = val <= 3 ? "block" : "none";
+      document.getElementById(`rehire-${idx}`).style.display = val <= 2 ? "block" : "none";
+    });
+
+    document.getElementById("submitRatings").addEventListener("click", () => {
+      const results = sessionData.employeeList.map((name, index) => {
+        const rating = form.querySelector(`[name="rating-${index}"]:checked`);
+        const comment = form.querySelector(`#comment-${index}`)?.value || "";
+        const rehire = form.querySelector(`[name="rehire-${index}"]`)?.value || "";
+        return [name, rating?.value || "", comment, rehire];
+      });
+
+      const csvContent = "Employee,Rating,Comment,Rehire\n" + results
+        .map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+
+      // 1. Download CSV
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `${sessionData.clientName}_${sessionData.jobOrder}_ratings.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // 2. Send CSV via email
+      const subject = `Ratings for ${sessionData.clientName} - Job Order ${sessionData.jobOrder}`;
+      const body = encodeURIComponent(csvContent);
+      const mailtoLink = `mailto:${sessionData.coordinatorEmail}?subject=${encodeURIComponent(subject)}&body=${body}`;
+      window.open(mailtoLink);
+
+      // 3. Redirect to thank you
+      setTimeout(() => {
+        window.location.href = "thankyou.html";
+      }, 800);
+    });
+  </script>
+</body>
+</html>

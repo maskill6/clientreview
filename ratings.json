@@ -1,1 +1,28 @@
+[
+  {
+    "client": "Sandyland",
+    "date": "2025-08-08",
+    "ratings": {
+      "John Smith": 5,
+      "Jane Doe": 4,
+      "Carlos Rivera": 3
+    }
+  },
+  {
+    "client": "Kube-Pak",
+    "date": "2025-08-07",
+    "ratings": {
+      "Luis Gomez": 4,
+      "Maria Sanchez": 5
+    }
+  },
+  {
+    "client": "Sackett",
+    "date": "2025-08-06",
+    "ratings": {
+      "Robert Paulson": 2,
+      "Tina Chen": 5
+    }
+  }
+]
 

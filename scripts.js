@@ -78,8 +78,15 @@ $btn.addEventListener('click', async () => {
 
     // 5) Build the rating page link
     //    This expects you to have a rate.html in the same repo.
-    const basePath = location.origin + location.pathname.replace(/index\.html?$/i, '');
-    const ratingLink = `${basePath}rate.html?job=${encodeURIComponent(payload.job_id)}`;
+// Build a robust base URL for the same folder as index.html
+    const baseUrl = location.href.replace(/[^/]*$/, ''); 
+// Now make the link to rate.html in the same folder
+    const ratingLink = `${baseUrl}rate.html?job=${encodeURIComponent(payload.job_id)}`;
+
+// put it on the page
+document.getElementById('generatedLink').innerHTML =
+  `<a href="${ratingLink}" target="_blank" rel="noopener">${ratingLink}</a>`;
+
 
     showMessage(
       `<strong>Share this link with the client:</strong><br>

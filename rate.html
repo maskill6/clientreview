@@ -6,24 +6,18 @@
   <title>Rate Employees</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    .employee-rating {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      margin-bottom: 0.5rem;
-    }
-    .employee-name { font-weight: bold; font-size: 1.1rem; margin-right: 1rem; }
-    .stars { display: inline-flex; flex-direction: row-reverse; justify-content: flex-end; gap: 4px; }
-    .stars input[type="radio"] { display: none; }
-    .stars label { font-size: 1.5rem; color: lightgray; cursor: pointer; transition: color 0.2s; }
-    .stars input:checked ~ label, .stars label:hover, .stars label:hover ~ label { color: gold; }
-    .feedback-section, .rehire-section { margin-top: 0.75rem; }
-    fieldset { border: 1px solid #ccc; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; }
-    legend { padding: 0 0.5rem; }
-    textarea, select { width: 100%; padding: 0.5rem; margin-top: 0.25rem; }
-    button { margin-top: 1rem; }
-    .note { color: #666; font-size: .9rem; margin-bottom: .75rem; }
+    .employee-rating{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:0.5rem}
+    .employee-name{font-weight:bold;font-size:1.1rem;margin-right:1rem}
+    .stars{display:inline-flex;flex-direction:row-reverse;justify-content:flex-end;gap:4px}
+    .stars input[type="radio"]{display:none}
+    .stars label{font-size:1.5rem;color:lightgray;cursor:pointer;transition:color .2s}
+    .stars input:checked ~ label,.stars label:hover,.stars label:hover ~ label{color:gold}
+    .feedback-section,.rehire-section{margin-top:.75rem}
+    fieldset{border:1px solid #ccc;border-radius:6px;padding:.75rem 1rem;margin-bottom:1rem}
+    legend{padding:0 .5rem}
+    textarea,select{width:100%;padding:.5rem;margin-top:.25rem}
+    button{margin-top:1rem}
+    .note{color:#666;font-size:.9rem;margin-bottom:.75rem}
   </style>
 </head>
 <body>
@@ -38,141 +32,122 @@
   </div>
 
   <script>
-    // 🔧 PUT YOUR APPS SCRIPT /exec URL HERE:
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbyDloMh7_zYLDzrxE2_Zx0O1xYYOTZZLZBufuzTR5U/dev';
+    const API_BASE = 'https://script.google.com/macros/s/PASTE_YOUR_EXEC_URL_HERE/exec'; // <-- replace
 
     const form = document.getElementById('ratingForm');
     const statusEl = document.getElementById('status');
-
-    // Use ?job=LL-2025-0142
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const jobId = params.get('job') || '';
     document.getElementById('jobId').textContent = jobId || '(missing)';
 
-    // Load employees saved by the generator (index.html)
-    const saved = (localStorage.getItem('last_emps_' + jobId) || '').split('\n').filter(Boolean);
+    // Prefer localStorage list (saved by generator). If missing, we'll still allow manual entry fallback.
+    let saved = (localStorage.getItem('last_emps_' + jobId) || '').split('\n').filter(Boolean);
 
     if (!jobId) {
-      form.innerHTML = `<p style="color:red;">Missing job id. This page must be opened from a generated link like <code>rate.html?job=LL-2025-0142</code>.</p>`;
+      form.innerHTML = '<p style="color:red;">Missing job id. Use a link like <code>rate.html?job=10522</code>.</p>';
       document.getElementById('submitRatings').disabled = true;
-      throw new Error('Missing job id');
+    } else if (!saved.length) {
+      form.innerHTML = '<p class="note">No employee list found for this job on this device. Paste names below (one per line) and submit — we will still record ratings.</p>'+
+                       '<textarea id="fallbackNames" rows="6" placeholder="John Smith\nJane Doe"></textarea>';
+      // Allow submit; we'll use fallback names.
+    } else {
+      buildEmployeeBlocks(saved);
     }
 
-    if (!saved.length) {
-      form.innerHTML = `<p style="color:red;">No employee list found for this job. Generate the link from the tool first so it can save the names.</p>`;
-      document.getElementById('submitRatings').disabled = true;
-      throw new Error('Missing employees');
+    function buildEmployeeBlocks(names){
+      names.forEach(function(name, index){
+        const fieldset = document.createElement('fieldset');
+        fieldset.innerHTML = '
+          <legend class="employee-rating">\n\
+            <span class="employee-name">'+escapeHtml(name)+'</span>\n\
+            <div class="stars">\n\
+              '+[1,2,3,4,5].map(function(i){return '\n\
+                <input type="radio" id="star'+i+'-'+index+'" name="rating-'+index+'" value="'+i+'">\n\
+                <label for="star'+i+'-'+index+'" title="'+i+' star">★</label>\n\
+              ';}).reverse().join('')+'\n\
+            </div>\n\
+          </legend>\n\
+          <div class="feedback-section" id="feedback-'+index+'" style="display:none;">\n\
+            <label for="comment-'+index+'">Please explain the rating:</label>\n\
+            <textarea id="comment-'+index+'" name="comment-'+index+'" rows="3"></textarea>\n\
+          </div>\n\
+          <div class="rehire-section" id="rehire-'+index+'" style="display:none;">\n\
+            <label for="rehire-'+index+'">Would you rehire this employee next season?</label>\n\
+            <select id="rehire-'+index+'" name="rehire-'+index+'">\n\
+              <option value="">-- Select --</option>\n\
+              <option value="Yes">Yes</option>\n\
+              <option value="No">No</option>\n\
+            </select>\n\
+          </div>';
+        form.appendChild(fieldset);
+      });
     }
 
-    // Build the form UI
-    saved.forEach((name, index) => {
-      const fieldset = document.createElement('fieldset');
-      fieldset.innerHTML = `
-        <legend class="employee-rating">
-          <span class="employee-name">${name}</span>
-          <div class="stars">
-            ${[1,2,3,4,5].map(i => `
-              <input type="radio" id="star${i}-${index}" name="rating-${index}" value="${i}">
-              <label for="star${i}-${index}" title="${i} star">★</label>
-            `).reverse().join('')}
-          </div>
-        </legend>
-
-        <div class="feedback-section" id="feedback-${index}" style="display:none;">
-          <label for="comment-${index}">Please explain the rating:</label>
-          <textarea id="comment-${index}" name="comment-${index}" rows="3"></textarea>
-        </div>
-
-        <div class="rehire-section" id="rehire-${index}" style="display:none;">
-          <label for="rehire-${index}">Would you rehire this employee next season?</label>
-          <select id="rehire-${index}" name="rehire-${index}">
-            <option value="">-- Select --</option>
-            <option value="Yes">Yes</option>
-            <option value="No">No</option>
-          </select>
-        </div>
-      `;
-      form.appendChild(fieldset);
-    });
-
-    // Toggle feedback/rehire visibility based on chosen stars
-    form.addEventListener('change', (e) => {
+    form.addEventListener('change', function(e){
       if (!e.target.matches("input[type='radio']")) return;
       const idx = e.target.name.split('-')[1];
       const val = parseInt(e.target.value, 10);
-      document.getElementById(`feedback-${idx}`).style.display = val <= 3 ? 'block' : 'none';
-      document.getElementById(`rehire-${idx}`).style.display = val <= 2 ? 'block' : 'none';
+      document.getElementById('feedback-'+idx).style.display = val <= 3 ? 'block' : 'none';
+      document.getElementById('rehire-'+idx).style.display = val <= 2 ? 'block' : 'none';
     });
 
-    // Submit all ratings to Apps Script (action=rate) as form-encoded posts
-    document.getElementById('submitRatings').addEventListener('click', async () => {
-      const rows = saved.map((name, index) => {
-        const ratingInput = form.querySelector(`[name="rating-${index}"]:checked`);
+    document.getElementById('submitRatings').addEventListener('click', async function(){
+      let names = saved;
+      const fb = document.getElementById('fallbackNames');
+      if (!names.length && fb) {
+        names = fb.value.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);
+        if (!names.length){
+          statusEl.textContent = 'Please paste names or use a generated link with employees.';
+          statusEl.style.color = '#b00020';
+          return;
+        }
+        // Build blocks dynamically so rating controls exist
+        form.innerHTML = '';
+        buildEmployeeBlocks(names);
+      }
+
+      const rows = names.map(function(name, index){
+        const ratingInput = form.querySelector('[name="rating-'+index+'"]:checked');
         const rating = ratingInput ? parseInt(ratingInput.value, 10) : 0;
-        const comment = (form.querySelector(`#comment-${index}`) || {}).value || '';
-        const rehire = (form.querySelector(`#rehire-${index}`) || {}).value || '';
-        return { name, rating, comment, rehire };
+        const commentEl = form.querySelector('#comment-'+index);
+        const rehireEl = form.querySelector('#rehire-'+index);
+        const comment = commentEl ? commentEl.value : '';
+        const rehire = rehireEl ? rehireEl.value : '';
+        return { name: name, rating: rating, comment: comment, rehire: rehire };
       });
 
-      // Basic validation: require a rating for each
-      const missing = rows.find(r => !r.rating);
-      if (missing) {
+      if (rows.some(function(r){ return !r.rating; })) {
         statusEl.textContent = 'Please select a star rating for every employee.';
         statusEl.style.color = '#b00020';
         return;
       }
 
-      // Send each rating. We’ll merge "rehire" into the comments field for now (backend has one comments column).
-      // e.g., "Rehire: Yes | actual comments..."
-      const requests = rows.map(r => {
-        const commentsCombined = (r.rehire ? `Rehire: ${r.rehire} | ` : '') + r.comment;
-        const formBody = new URLSearchParams();
-        formBody.set('action', 'rate');
-        formBody.set('data', JSON.stringify({
-          job_id: jobId,
-          employee_name: r.name,
-          rating: r.rating,
-          comments: commentsCombined
-        }));
-        return fetch(API_BASE + '?t=' + Date.now(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: formBody.toString()
-        }).then(res => res.json());
+      const requests = rows.map(function(r){
+        const commentsCombined = (r.rehire ? ('Rehire: '+r.rehire+' | ') : '') + r.comment;
+        const body = new URLSearchParams();
+        body.set('action', 'rate');
+        body.set('data', JSON.stringify({ job_id: jobId, employee_name: r.name, rating: r.rating, comments: commentsCombined }));
+        return fetch(API_BASE + '?t=' + Date.now(), { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() }).then(function(res){ return res.json(); });
       });
 
       try {
         document.getElementById('submitRatings').disabled = true;
         statusEl.textContent = 'Submitting…';
         statusEl.style.color = '';
-
         const results = await Promise.all(requests);
-        const failed = results.find(x => !x || !x.ok);
-        if (failed) throw new Error(failed.error || 'Submit failed');
-
-        // Optional: also give user a CSV to save locally (keeps your original behavior)
-        const csv = 'Employee,Rating,Comment,Rehire\n' + rows
-          .map(r => {
-            const cells = [r.name, String(r.rating), r.comment.replace(/"/g,'""'), r.rehire];
-            return '"' + cells.join('","') + '"';
-          }).join('\n');
-
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const dl = document.createElement('a');
-        dl.href = URL.createObjectURL(blob);
-        dl.download = `ratings_${jobId}.csv`;
-        document.body.appendChild(dl);
-        dl.click();
-        document.body.removeChild(dl);
-
+        if (results.some(function(x){ return !x || !x.ok; })) throw new Error('Submit failed');
         statusEl.textContent = 'Thanks! Ratings submitted.';
-        setTimeout(() => { window.location.href = 'thankyou.html'; }, 800);
-      } catch (err) {
-        statusEl.textContent = 'Error: ' + (err.message || String(err));
+        setTimeout(function(){ window.location.href = 'thankyou.html'; }, 800);
+      } catch (e) {
+        statusEl.textContent = 'Error: ' + (e.message || String(e));
         statusEl.style.color = '#b00020';
         document.getElementById('submitRatings').disabled = false;
       }
     });
+
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]);});
+    }
   </script>
 </body>
 </html>

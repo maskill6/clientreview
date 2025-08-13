@@ -4,157 +4,123 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Rate Employees</title>
-  <link rel="stylesheet" href="styles.css" />
   <style>
-    .employee-rating{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:0.5rem}
-    .employee-name{font-weight:bold;font-size:1.1rem;margin-right:1rem}
-    .stars{display:inline-flex;flex-direction:row-reverse;justify-content:flex-end;gap:4px}
-    .stars input[type="radio"]{display:none}
-    .stars label{font-size:1.5rem;color:lightgray;cursor:pointer;transition:color .2s}
-    .stars input:checked ~ label,.stars label:hover,.stars label:hover ~ label{color:gold}
-    .feedback-section,.rehire-section{margin-top:.75rem}
-    fieldset{border:1px solid #ccc;border-radius:6px;padding:.75rem 1rem;margin-bottom:1rem}
-    legend{padding:0 .5rem}
-    textarea,select{width:100%;padding:.5rem;margin-top:.25rem}
-    button{margin-top:1rem}
-    .note{color:#666;font-size:.9rem;margin-bottom:.75rem}
+    body { font-family: Arial, sans-serif; padding: 2rem; background: #f4f4f4; color: #222; }
+    .container { max-width: 720px; margin: auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .employee-rating { margin-bottom: 1.5rem; }
+    .employee-rating h3 { margin: 0 0 0.5rem; }
+
+    .stars button {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #ccc;
+    }
+    .stars button.active {
+      color: gold;
+    }
+    textarea, select {
+      width: 100%;
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    button.submit-btn {
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Rate Each Employee</h1>
-    <p class="note">Job: <span id="jobId"></span></p>
-
+    <h1>Rate Employees</h1>
+    <div id="jobInfo"></div>
     <form id="ratingForm"></form>
-    <button type="button" id="submitRatings">Submit Ratings</button>
-
-    <div id="status" class="note" aria-live="polite" style="margin-top:.75rem;"></div>
+    <button class="submit-btn" type="button" id="submitRatings">Submit Ratings</button>
   </div>
 
   <script>
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbzGUshQUlejXpdG5PxYv3RUbdQgj1aCLlHAE6e_LHdomaJ6i9slhZUE_ZBCQxvuRh4r/exec'; // <-- replace
+    const jobId = new URLSearchParams(location.search).get('job') || '';
+    const stored = localStorage.getItem('last_emps_' + jobId);
+    const names = stored ? stored.split('\n').filter(Boolean) : [];
 
     const form = document.getElementById('ratingForm');
-    const statusEl = document.getElementById('status');
-    const params = new URLSearchParams(location.search);
-    // Prefer ?job=ID; fall back to ?client=ClientName_ID and extract the trailing ID after the last underscore
-    let jobId = params.get('job') || '';
-    if (!jobId) {
-      const clientParam = params.get('client') || '';
-      if (clientParam && clientParam.indexOf('_') !== -1) {
-        jobId = clientParam.split('_').pop();
-      }
-    }
-    document.getElementById('jobId').textContent = jobId || '(missing)';
+    const jobInfo = document.getElementById('jobInfo');
+    jobInfo.innerHTML = `<strong>Job ID:</strong> ${jobId}`;
 
-    // Prefer localStorage list (saved by generator). If missing, we'll still allow manual entry fallback.
-    let saved = (localStorage.getItem('last_emps_' + jobId) || '').split('\n').filter(Boolean);
-
-    if (!jobId) {
-      form.innerHTML = '<p style="color:red;">Missing job id. Use a link like <code>rate.html?job=10522</code>.</p>';
-      document.getElementById('submitRatings').disabled = true;
-    } else if (!saved.length) {
-      form.innerHTML = '<p class="note">No employee list found for this job on this device. Paste names below (one per line) and submit — we will still record ratings.</p>'+
-                       '<textarea id="fallbackNames" rows="6" placeholder="John Smith\nJane Doe"></textarea>';
-      // Allow submit; we'll use fallback names.
-    } else {
-      buildEmployeeBlocks(saved);
+    if (names.length === 0) {
+      form.innerHTML = '<p style="color: red;">No employee data found for this job.</p>';
     }
 
-    function buildEmployeeBlocks(names){
-      names.forEach(function(name, index){
-        const fieldset = document.createElement('fieldset');
-        fieldset.innerHTML = '
-          <legend class="employee-rating">\n\
-            <span class="employee-name">'+escapeHtml(name)+'</span>\n\
-            <div class="stars">\n\
-              '+[1,2,3,4,5].map(function(i){return '\n\
-                <input type="radio" id="star'+i+'-'+index+'" name="rating-'+index+'" value="'+i+'">\n\
-                <label for="star'+i+'-'+index+'" title="'+i+' star">★</label>\n\
-              ';}).reverse().join('')+'\n\
-            </div>\n\
-          </legend>\n\
-          <div class="feedback-section" id="feedback-'+index+'" style="display:none;">\n\
-            <label for="comment-'+index+'">Please explain the rating:</label>\n\
-            <textarea id="comment-'+index+'" name="comment-'+index+'" rows="3"></textarea>\n\
-          </div>\n\
-          <div class="rehire-section" id="rehire-'+index+'" style="display:none;">\n\
-            <label for="rehire-'+index+'">Would you rehire this employee next season?</label>\n\
-            <select id="rehire-'+index+'" name="rehire-'+index+'">\n\
-              <option value="">-- Select --</option>\n\
-              <option value="Yes">Yes</option>\n\
-              <option value="No">No</option>\n\
-            </select>\n\
-          </div>';
-        form.appendChild(fieldset);
+    names.forEach((name, index) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'employee-rating';
+
+      wrapper.innerHTML = `
+        <h3>${name}</h3>
+        <div class="stars" id="stars-${index}">
+          ${[1,2,3,4,5].map(i => `<button data-val="${i}" title="${i} star">★</button>`).join('')}
+        </div>
+        <div class="feedback" id="feedback-${index}" style="display:none;">
+          <label>Explain your rating:</label>
+          <textarea id="comment-${index}"></textarea>
+        </div>
+        <div class="rehire" id="rehire-${index}" style="display:none;">
+          <label>Would you rehire?</label>
+          <select id="rehire-answer-${index}">
+            <option value="">-- Select --</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+      `;
+
+      form.appendChild(wrapper);
+
+      const starButtons = wrapper.querySelectorAll('.stars button');
+      starButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = parseInt(btn.dataset.val);
+          starButtons.forEach(b => b.classList.toggle('active', parseInt(b.dataset.val) <= val));
+
+          // Show comment if 3 stars or less
+          document.getElementById(`feedback-${index}`).style.display = val <= 3 ? 'block' : 'none';
+          // Show rehire question if 2 stars or less
+          document.getElementById(`rehire-${index}`).style.display = val <= 2 ? 'block' : 'none';
+        });
       });
-    }
-
-    form.addEventListener('change', function(e){
-      if (!e.target.matches("input[type='radio']")) return;
-      const idx = e.target.name.split('-')[1];
-      const val = parseInt(e.target.value, 10);
-      document.getElementById('feedback-'+idx).style.display = val <= 3 ? 'block' : 'none';
-      document.getElementById('rehire-'+idx).style.display = val <= 2 ? 'block' : 'none';
     });
 
-    document.getElementById('submitRatings').addEventListener('click', async function(){
-      let names = saved;
-      const fb = document.getElementById('fallbackNames');
-      if (!names.length && fb) {
-        names = fb.value.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);
-        if (!names.length){
-          statusEl.textContent = 'Please paste names or use a generated link with employees.';
-          statusEl.style.color = '#b00020';
-          return;
-        }
-        // Build blocks dynamically so rating controls exist
-        form.innerHTML = '';
-        buildEmployeeBlocks(names);
-      }
-
-      const rows = names.map(function(name, index){
-        const ratingInput = form.querySelector('[name="rating-'+index+'"]:checked');
-        const rating = ratingInput ? parseInt(ratingInput.value, 10) : 0;
-        const commentEl = form.querySelector('#comment-'+index);
-        const rehireEl = form.querySelector('#rehire-'+index);
-        const comment = commentEl ? commentEl.value : '';
-        const rehire = rehireEl ? rehireEl.value : '';
-        return { name: name, rating: rating, comment: comment, rehire: rehire };
+    document.getElementById('submitRatings').addEventListener('click', () => {
+      const results = names.map((name, index) => {
+        const ratingEl = document.querySelector(`#stars-${index} .active:last-child`);
+        const rating = ratingEl ? ratingEl.dataset.val : '';
+        const comment = document.getElementById(`comment-${index}`)?.value || '';
+        const rehire = document.getElementById(`rehire-answer-${index}`)?.value || '';
+        return [name, rating, comment, rehire];
       });
 
-      if (rows.some(function(r){ return !r.rating; })) {
-        statusEl.textContent = 'Please select a star rating for every employee.';
-        statusEl.style.color = '#b00020';
-        return;
-      }
+      const csv = 'Employee,Rating,Comment,Rehire\n' +
+        results.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
 
-      const requests = rows.map(function(r){
-        const commentsCombined = (r.rehire ? ('Rehire: '+r.rehire+' | ') : '') + r.comment;
-        const body = new URLSearchParams();
-        body.set('action', 'rate');
-        body.set('data', JSON.stringify({ job_id: jobId, employee_name: r.name, rating: r.rating, comments: commentsCombined }));
-        return fetch(API_BASE + '?t=' + Date.now(), { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() }).then(function(res){ return res.json(); });
-      });
+      // Download CSV
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${jobId}_ratings.csv`;
+      a.click();
 
-      try {
-        document.getElementById('submitRatings').disabled = true;
-        statusEl.textContent = 'Submitting…';
-        statusEl.style.color = '';
-        const results = await Promise.all(requests);
-        if (results.some(function(x){ return !x || !x.ok; })) throw new Error('Submit failed');
-        statusEl.textContent = 'Thanks! Ratings submitted.';
-        setTimeout(function(){ window.location.href = 'thankyou.html'; }, 800);
-      } catch (e) {
-        statusEl.textContent = 'Error: ' + (e.message || String(e));
-        statusEl.style.color = '#b00020';
-        document.getElementById('submitRatings').disabled = false;
-      }
+      alert('Thank you! Your ratings have been saved.');
+      window.location.href = 'thankyou.html';
     });
-
-    function escapeHtml(s){
-      return String(s).replace(/[&<>"']/g, function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]);});
-    }
   </script>
 </body>
 </html>

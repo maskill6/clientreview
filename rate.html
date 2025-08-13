@@ -2,124 +2,79 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rate Employees</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 2rem; background: #f4f4f4; color: #222; }
-    .container { max-width: 720px; margin: auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .employee-rating { margin-bottom: 1.5rem; }
-    .employee-rating h3 { margin: 0 0 0.5rem; }
-
-    .stars button {
-      background: none;
-      border: none;
-      font-size: 1.5rem;
-      cursor: pointer;
-      color: #ccc;
-    }
-    .stars button.active {
-      color: gold;
-    }
-    textarea, select {
-      width: 100%;
-      margin-top: 0.5rem;
-      padding: 0.5rem;
-      font-size: 1rem;
-    }
-    button.submit-btn {
-      padding: 0.75rem 1.5rem;
-      font-size: 1rem;
-      background: #28a745;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-top: 1rem;
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="container">
-    <h1>Rate Employees</h1>
-    <div id="jobInfo"></div>
+    <h1>Rate Each Employee</h1>
     <form id="ratingForm"></form>
-    <button class="submit-btn" type="button" id="submitRatings">Submit Ratings</button>
+    <button type="button" id="submitRatings">Submit Ratings</button>
   </div>
 
   <script>
     const jobId = new URLSearchParams(location.search).get('job') || '';
-    const stored = localStorage.getItem('last_emps_' + jobId);
-    const names = stored ? stored.split('\n').filter(Boolean) : [];
+    const API_BASE = 'https://script.google.com/macros/s/YOUR_EXEC_ID/exec';
+    const ADMIN_TOKEN = 'YOUR_ADMIN_TOKEN';
 
-    const form = document.getElementById('ratingForm');
-    const jobInfo = document.getElementById('jobInfo');
-    jobInfo.innerHTML = `<strong>Job ID:</strong> ${jobId}`;
-
-    if (names.length === 0) {
-      form.innerHTML = '<p style="color: red;">No employee data found for this job.</p>';
+    async function loadEmployees() {
+      try {
+        const res = await fetch(`${API_BASE}?action=job&id=${encodeURIComponent(jobId)}&token=${ADMIN_TOKEN}`);
+        const data = await res.json();
+        if (!data || !data.employees) throw new Error('No employee data found');
+        return data.employees.map(emp => emp.employee_name);
+      } catch (e) {
+        console.error(e);
+        document.getElementById("ratingForm").innerHTML = `<p style='color:red;'>Error loading employees: ${e.message}</p>`;
+        return [];
+      }
     }
 
-    names.forEach((name, index) => {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'employee-rating';
+    loadEmployees().then(employeeList => {
+      const form = document.getElementById("ratingForm");
+      if (employeeList.length === 0) return;
 
-      wrapper.innerHTML = `
-        <h3>${name}</h3>
-        <div class="stars" id="stars-${index}">
-          ${[1,2,3,4,5].map(i => `<button data-val="${i}" title="${i} star">★</button>`).join('')}
-        </div>
-        <div class="feedback" id="feedback-${index}" style="display:none;">
-          <label>Explain your rating:</label>
-          <textarea id="comment-${index}"></textarea>
-        </div>
-        <div class="rehire" id="rehire-${index}" style="display:none;">
-          <label>Would you rehire?</label>
-          <select id="rehire-answer-${index}">
-            <option value="">-- Select --</option>
-            <option value="Yes">Yes</option>
-            <option value="No">No</option>
-          </select>
-        </div>
-      `;
+      employeeList.forEach((name, index) => {
+        const fieldset = document.createElement("fieldset");
+        fieldset.innerHTML = `
+          <legend>${name}</legend>
+          <div class="stars">
+            ${[1,2,3,4,5].map(i => `
+              <input type="radio" id="star${i}-${index}" name="rating-${index}" value="${i}">
+              <label for="star${i}-${index}" title="${i} star">★</label>
+            `).reverse().join('')}
+          </div>
 
-      form.appendChild(wrapper);
+          <div class="feedback-section" id="feedback-${index}" style="display:none;">
+            <label for="comment-${index}">Please explain the rating:</label>
+            <textarea id="comment-${index}" name="comment-${index}" rows="3"></textarea>
+          </div>
 
-      const starButtons = wrapper.querySelectorAll('.stars button');
-      starButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const val = parseInt(btn.dataset.val);
-          starButtons.forEach(b => b.classList.toggle('active', parseInt(b.dataset.val) <= val));
-
-          // Show comment if 3 stars or less
-          document.getElementById(`feedback-${index}`).style.display = val <= 3 ? 'block' : 'none';
-          // Show rehire question if 2 stars or less
-          document.getElementById(`rehire-${index}`).style.display = val <= 2 ? 'block' : 'none';
-        });
+          <div class="rehire-section" id="rehire-${index}" style="display:none;">
+            <label for="rehire-${index}">Would you rehire this employee next season?</label>
+            <select id="rehire-${index}" name="rehire-${index}">
+              <option value="">-- Select --</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+        `;
+        form.appendChild(fieldset);
       });
     });
 
-    document.getElementById('submitRatings').addEventListener('click', () => {
-      const results = names.map((name, index) => {
-        const ratingEl = document.querySelector(`#stars-${index} .active:last-child`);
-        const rating = ratingEl ? ratingEl.dataset.val : '';
-        const comment = document.getElementById(`comment-${index}`)?.value || '';
-        const rehire = document.getElementById(`rehire-answer-${index}`)?.value || '';
-        return [name, rating, comment, rehire];
-      });
+    document.getElementById("ratingForm").addEventListener("change", (e) => {
+      if (!e.target.matches("input[type='radio']")) return;
+      const idx = e.target.name.split("-")[1];
+      const val = parseInt(e.target.value);
 
-      const csv = 'Employee,Rating,Comment,Rehire\n' +
-        results.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
+      document.getElementById(`feedback-${idx}`).style.display = val <= 3 ? "block" : "none";
+      document.getElementById(`rehire-${idx}`).style.display = val <= 2 ? "block" : "none";
+    });
 
-      // Download CSV
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${jobId}_ratings.csv`;
-      a.click();
-
-      alert('Thank you! Your ratings have been saved.');
-      window.location.href = 'thankyou.html';
+    document.getElementById("submitRatings").addEventListener("click", () => {
+      alert("Submit logic goes here"); // Add your submission logic
     });
   </script>
 </body>

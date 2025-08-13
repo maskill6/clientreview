@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin — Ratings Viewer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Admin — Ratings Viewer</h1>
+    <label for="job">Job ID</label>
+    <input id="job" placeholder="e.g., 10522" />
+
+    <label for="token">Admin Token</label>
+    <input id="token" placeholder="paste ADMIN_TOKEN" />
+
+    <button id="load">Load</button>
+    <pre id="out" style="white-space:pre-wrap"></pre>
+    <button id="csv" style="display:none;">Download CSV</button>
+  </div>
+
+  <script>
+    const API_BASE = 'https://script.google.com/macros/s/PASTE_YOUR_EXEC_URL_HERE/exec'; // <-- replace
+
+    const $job = document.getElementById('job');
+    const $tok = document.getElementById('token');
+    const $out = document.getElementById('out');
+    const $csv = document.getElementById('csv');
+
+    document.getElementById('load').addEventListener('click', async function(){
+      const id = $job.value.trim();
+      const t = $tok.value.trim();
+      if (!id || !t){ alert('Job + token required'); return; }
+      const url = API_BASE + '?action=job&id=' + encodeURIComponent(id) + '&token=' + encodeURIComponent(t) + '&t=' + Date.now();
+      $out.textContent = 'Loading…';
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.error){ throw new Error(data.error); }
+        $out.textContent = JSON.stringify(data, null, 2);
+        $csv.style.display = 'inline-block';
+        $csv.onclick = function(){ downloadCSV(data); };
+      } catch(e) {
+        $out.textContent = 'Error: ' + (e.message || String(e));
+        $csv.style.display = 'none';
+      }
+    });
+
+    function downloadCSV(data){
+      const rows = [['Employee','Rating','Comments','SubmittedAt']];
+      const ratings = data.ratings || {};
+      Object.keys(ratings).forEach(function(name){
+        ratings[name].forEach(function(r){
+          rows.push([name, r.rating, r.comments || '', r.submitted_at]);
+        });
+      });
+      const csv = rows.map(function(r){ return '"'+r.map(function(c){return String(c).replace(/"/g,'""');}).join('","')+'"'; }).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'ratings_'+(data.meta && data.meta.id || 'export')+'.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+  </script>
+</body>
+</html>

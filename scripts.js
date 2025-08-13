@@ -10,10 +10,12 @@ const $employees = document.getElementById('employeeList');
 const $btn = document.getElementById('generateLinkBtn');
 const $out = document.getElementById('generatedLink');
 
-function cleanEmployees(text){
-  return text.split(/
-+/).map(function(s){return s.trim();}).filter(function(x){return x;});
+function cleanEmployees(text) {
+  return text.split(/\n+/)
+             .map(function(s) { return s.trim(); })
+             .filter(function(x) { return x; });
 }
+
 function showMessage(html, isError){
   $out.innerHTML = html;
   $out.style.color = isError ? '#b00020' : '';

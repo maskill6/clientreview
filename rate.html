@@ -32,12 +32,19 @@
   </div>
 
   <script>
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbzGUshQUlejXpdG5PxYv3RUbdQgj1aCLlHAE6e_LHdomaJ6i9slhZUE_ZBCQxvuRh4r/exec'; // <-- replace
+    const API_BASE = 'https://script.google.com/macros/s/PASTE_YOUR_EXEC_URL_HERE/exec'; // <-- replace
 
     const form = document.getElementById('ratingForm');
     const statusEl = document.getElementById('status');
     const params = new URLSearchParams(location.search);
-    const jobId = params.get('job') || '';
+    // Prefer ?job=ID; fall back to ?client=ClientName_ID and extract the trailing ID after the last underscore
+    let jobId = params.get('job') || '';
+    if (!jobId) {
+      const clientParam = params.get('client') || '';
+      if (clientParam && clientParam.indexOf('_') !== -1) {
+        jobId = clientParam.split('_').pop();
+      }
+    }
     document.getElementById('jobId').textContent = jobId || '(missing)';
 
     // Prefer localStorage list (saved by generator). If missing, we'll still allow manual entry fallback.

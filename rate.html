@@ -2,9 +2,65 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Rate Employees</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .employee-rating {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 0.5rem;
+    }
+    .employee-name {
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin-right: 1rem;
+    }
+    .stars {
+      display: inline-flex;
+      flex-direction: row-reverse;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+    .stars input[type="radio"] {
+      display: none;
+    }
+    .stars label {
+      font-size: 1.5rem;
+      color: lightgray;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .stars input:checked ~ label,
+    .stars label:hover,
+    .stars label:hover ~ label {
+      color: gold;
+    }
+    .feedback-section,
+    .rehire-section {
+      margin-top: 0.75rem;
+    }
+    fieldset {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+    }
+    legend {
+      padding: 0 0.5rem;
+    }
+    textarea,
+    select {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.25rem;
+    }
+    button {
+      margin-top: 1rem;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -14,37 +70,48 @@
   </div>
 
   <script>
+    const API_BASE = 'https://script.google.com/macros/s/YOUR_EXEC_ID/exec'; // Replace with your Script URL
+    const ADMIN_TOKEN = 'replace-with-your-admin-token';
+
     const jobId = new URLSearchParams(location.search).get('job') || '';
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbzGUshQUlejXpdG5PxYv3RUbdQgj1aCLlHAE6e_LHdomaJ6i9slhZUE_ZBCQxvuRh4r/exec';
-    const ADMIN_TOKEN = 'YOUR_ADMIN_TOKEN';
+    const list = document.getElementById('ratingForm');
 
     async function loadEmployees() {
+      if (!jobId) {
+        list.innerHTML = '<p style="color:red;">Missing job ID in URL.</p>';
+        return;
+      }
+
       try {
-        const res = await fetch(`${API_BASE}?action=job&id=${encodeURIComponent(jobId)}&token=b7f3c9d8f6e47e2a9c4c1ee3dd28b5`);
+        const res = await fetch(`${API_BASE}?action=job&id=${encodeURIComponent(jobId)}&token=${ADMIN_TOKEN}`);
         const data = await res.json();
-        if (!data || !data.employees) throw new Error('No employee data found');
-        return data.employees.map(emp => emp.employee_name);
+
+        if (!data || !data.employees || !Array.isArray(data.employees)) {
+          list.innerHTML = '<p style="color:red;">Could not load employee list.</p>';
+          return;
+        }
+
+        buildForm(data.employees.map(e => e.employee_name));
       } catch (e) {
-        console.error(e);
-        document.getElementById("ratingForm").innerHTML = `<p style='color:red;'>Error loading employees: ${e.message}</p>`;
-        return [];
+        list.innerHTML = `<p style="color:red;">Error loading employees: ${e.message}</p>`;
       }
     }
 
-    loadEmployees().then(employeeList => {
-      const form = document.getElementById("ratingForm");
-      if (employeeList.length === 0) return;
+    function buildForm(employees) {
+      document.querySelector('h1').textContent += ` (${jobId})`;
 
-      employeeList.forEach((name, index) => {
+      employees.forEach((name, index) => {
         const fieldset = document.createElement("fieldset");
         fieldset.innerHTML = `
-          <legend>${name}</legend>
-          <div class="stars">
-            ${[1,2,3,4,5].map(i => `
-              <input type="radio" id="star${i}-${index}" name="rating-${index}" value="${i}">
-              <label for="star${i}-${index}" title="${i} star">★</label>
-            `).reverse().join('')}
-          </div>
+          <legend class="employee-rating">
+            <span class="employee-name">${name}</span>
+            <div class="stars">
+              ${[1,2,3,4,5].map(i => `
+                <input type="radio" id="star${i}-${index}" name="rating-${index}" value="${i}">
+                <label for="star${i}-${index}" title="${i} star">★</label>
+              `).reverse().join('')}
+            </div>
+          </legend>
 
           <div class="feedback-section" id="feedback-${index}" style="display:none;">
             <label for="comment-${index}">Please explain the rating:</label>
@@ -60,22 +127,20 @@
             </select>
           </div>
         `;
-        form.appendChild(fieldset);
+        list.appendChild(fieldset);
       });
-    });
 
-    document.getElementById("ratingForm").addEventListener("change", (e) => {
-      if (!e.target.matches("input[type='radio']")) return;
-      const idx = e.target.name.split("-")[1];
-      const val = parseInt(e.target.value);
+      list.addEventListener("change", (e) => {
+        if (!e.target.matches("input[type='radio']")) return;
+        const idx = e.target.name.split("-")[1];
+        const val = parseInt(e.target.value);
 
-      document.getElementById(`feedback-${idx}`).style.display = val <= 3 ? "block" : "none";
-      document.getElementById(`rehire-${idx}`).style.display = val <= 2 ? "block" : "none";
-    });
+        document.getElementById(`feedback-${idx}`).style.display = val <= 3 ? "block" : "none";
+        document.getElementById(`rehire-${idx}`).style.display = val <= 2 ? "block" : "none";
+      });
+    }
 
-    document.getElementById("submitRatings").addEventListener("click", () => {
-      alert("Submit logic goes here"); // Add your submission logic
-    });
+    window.addEventListener('DOMContentLoaded', loadEmployees);
   </script>
 </body>
 </html>

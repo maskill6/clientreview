@@ -15,7 +15,6 @@ function cleanEmployees(text) {
              .map(function(s) { return s.trim(); })
              .filter(function(x) { return x; });
 }
-
 function showMessage(html, isError){
   $out.innerHTML = html;
   $out.style.color = isError ? '#b00020' : '';

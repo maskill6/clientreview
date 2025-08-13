@@ -75,14 +75,12 @@ $btn.addEventListener('click', async function () {
 
   // 5) Show the link no matter what, plus any API error under it
   let html = `<strong>Share this link with the client:</strong><br>
-              <a href="${ratingLink}" target="_blank" rel="noopener">${ratingLink}</a>`;
-  if (apiError) {
-    html += `<div style="margin-top:.75rem;color:#b00020;">
-               Note: Backend init had an issue: ${apiError}.
-               The link still works using the saved names on this device.
-             </div>`;
-    // Also log the full payload/error to the console for debugging
-    console.warn('Init error:', apiError, 'Payload:', payload);
+            <a href="${ratingLink}" target="_blank" rel="noopener">${ratingLink}</a>`;
+
+const adminLink = repoRoot + 'admin.html?job=' + encodeURIComponent(payload.job_id);
+html += `<br><br><strong>Admin view (internal use only):</strong><br>
+         <a href="${adminLink}" target="_blank" rel="noopener">${adminLink}</a>`;
+
   }
   showMessage(html);
 });

@@ -43,8 +43,7 @@ $btn.addEventListener('click', async function () {
   try {
     localStorage.setItem('last_emps_' + payload.job_id, payload.employees.join('\n'));
   } catch (_) {}
- console.warn('Unable to save to localStorage');
-}
+
   const ratingLink = repoRoot + 'rate.html?job=' + encodeURIComponent(payload.job_id);
   const adminLink = repoRoot + 'admin.html?job=' + encodeURIComponent(payload.job_id);
 
@@ -73,18 +72,14 @@ $btn.addEventListener('click', async function () {
     $btn.disabled = false;
   }
 
-  let html = `<strong>Share this link with the client:</strong><br>
-              <a href="${ratingLink}" target="_blank" rel="noopener">${ratingLink}</a>`;
+ let html = `<strong>Client rating link:</strong><br>
+              <a href="${ratingLink}" target="_blank">${ratingLink}</a><br><br>
+              <strong>Admin view:</strong><br>
+              <a href="${adminLink}" target="_blank">${adminLink}</a>`;
 
-  html += `<br><br><strong>Admin view (internal use only):</strong><br>
-           <a href="${adminLink}" target="_blank" rel="noopener">${adminLink}</a>`;
-
-  if (apiError) {
-    html += `<div style="margin-top:.75rem;color:#b00020;">
-               Backend warning: ${apiError}.<br>
-               The link may still work using saved names on this browser.
-             </div>`;
-    console.warn('API error:', apiError, 'Payload:', payload);
+   if (apiError) {
+    html += `<div style="color:#b00020;margin-top:1rem;">⚠️ API error: ${apiError}</div>`;
+    console.warn('API init failed:', apiError, payload);
   }
 
   showMessage(html);

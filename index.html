@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Client Rating Generator</title>
+  <title>Client Rating Link Generator</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="container">
     <h1>Client Rating Link Generator</h1>
-    <form>
+    <form id="genForm" onsubmit="return false;">
       <label for="jobOrder">Legacy Labor Job Order #</label>
       <input type="text" id="jobOrder" placeholder="e.g. 10522" />
 
@@ -20,9 +20,7 @@
       <input type="email" id="coordinatorEmail" placeholder="e.g. example@legacylabor.com" />
 
       <label for="employeeList">List of Employee Names (one per line)</label>
-      <textarea id="employeeList" rows="6" placeholder="John Smith
-Jane Doe
-Carlos Garcia"></textarea>
+      <textarea id="employeeList" rows="6" placeholder="John Smith&#10;Jane Doe&#10;Carlos Garcia"></textarea>
 
       <button type="button" id="generateLinkBtn">Generate Rating Link</button>
     </form>

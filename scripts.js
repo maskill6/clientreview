@@ -81,6 +81,5 @@ const adminLink = repoRoot + 'admin.html?job=' + encodeURIComponent(payload.job_
 html += `<br><br><strong>Admin view (internal use only):</strong><br>
          <a href="${adminLink}" target="_blank" rel="noopener">${adminLink}</a>`;
 
-  }
   showMessage(html);
 });

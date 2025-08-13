@@ -24,10 +24,12 @@ function validate(){
   return '';
 }
 
-$btn.addEventListener('click', async function(){
+$btn.addEventListener('click', async function () {
+  // 1) Validate
   const problem = validate();
-  if (problem){ showMessage(problem, true); return; }
+  if (problem) { showMessage(problem, true); return; }
 
+  // 2) Build payload
   const payload = {
     job_id: $job.value.trim(),
     client_name: $client.value.trim(),
@@ -35,29 +37,49 @@ $btn.addEventListener('click', async function(){
     employees: cleanEmployees($employees.value)
   };
 
-  try { localStorage.setItem('last_emps_'+payload.job_id, payload.employees.join('
-')); } catch(_){ }
+  // Remember names locally for rate.html
+  try { localStorage.setItem('last_emps_' + payload.job_id, payload.employees.join('\n')); } catch (_) {}
 
+  // 3) Build link FIRST, so we can show it even if API fails
+  const repoRoot = 'https://maskill6.github.io/clientreview/'; // <-- make sure this is your real Pages URL
+  const ratingLink = repoRoot + 'rate.html?job=' + encodeURIComponent(payload.job_id);
+
+  // 4) Try API init (form-encoded, no CORS drama)
   const body = new URLSearchParams();
-  body.set('action','init');
+  body.set('action', 'init');
   body.set('data', JSON.stringify(payload));
 
-  $btn.disabled = true; showMessage('Generating link…');
+  $btn.disabled = true;
+  showMessage('Generating link…');
+
+  let apiError = '';
   try {
-    const res = await fetch(API_BASE + '?t=' + Date.now(), { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() });
+    if (!/^https?:\/\//.test(API_BASE)) throw new Error('API_BASE missing or invalid');
+    const res = await fetch(API_BASE + '?t=' + Date.now(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    });
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Init failed');
-
-    // 🔒 Hard-coded repo root to avoid double filenames / path issues
-    const repoRoot = 'https://maskill6.github.io/clientreview/';
-    const ratingLink = repoRoot + 'rate.html?job=' + encodeURIComponent(payload.job_id);
-
-    showMessage('<strong>Share this link with the client:</strong><br><a href="'+ratingLink+'" target="_blank" rel="noopener">'+ratingLink+'</a>');
+    if (!data || !data.ok) {
+      apiError = (data && data.error) ? data.error : 'Init failed (no ok flag)';
+    }
   } catch (e) {
-    showMessage('Error: ' + (e.message || String(e)), true);
-  } finally {
-    showMessage('Error: ' + (e.message || String(e)), true);
+    apiError = e.message || String(e);
   } finally {
     $btn.disabled = false;
   }
+
+  // 5) Show the link no matter what, plus any API error under it
+  let html = `<strong>Share this link with the client:</strong><br>
+              <a href="${ratingLink}" target="_blank" rel="noopener">${ratingLink}</a>`;
+  if (apiError) {
+    html += `<div style="margin-top:.75rem;color:#b00020;">
+               Note: Backend init had an issue: ${apiError}.
+               The link still works using the saved names on this device.
+             </div>`;
+    // Also log the full payload/error to the console for debugging
+    console.warn('Init error:', apiError, 'Payload:', payload);
+  }
+  showMessage(html);
 });

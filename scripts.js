@@ -44,7 +44,7 @@ $btn.addEventListener('click', async function () {
   try { localStorage.setItem('last_emps_' + payload.job_id, payload.employees.join('\n')); } catch (_) {}
 
   // 3) Build link FIRST, so we can show it even if API fails
-  const repoRoot = 'https://maskill6.github.io/clientreview/'; // <-- make sure this is your real Pages URL
+  
   const ratingLink = repoRoot + 'rate.html?job=' + encodeURIComponent(payload.job_id);
 
   // 4) Try API init (form-encoded, no CORS drama)

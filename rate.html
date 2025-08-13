@@ -20,7 +20,7 @@
 
     async function loadEmployees() {
       try {
-        const res = await fetch(`${API_BASE}?action=job&id=${encodeURIComponent(jobId)}&token=${ADMIN_TOKEN}`);
+        const res = await fetch(`${API_BASE}?action=job&id=${encodeURIComponent(jobId)}&token=b7f3c9d8f6e47e2a9c4c1ee3dd28b5`);
         const data = await res.json();
         if (!data || !data.employees) throw new Error('No employee data found');
         return data.employees.map(emp => emp.employee_name);

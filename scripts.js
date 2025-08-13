@@ -43,7 +43,8 @@ $btn.addEventListener('click', async function () {
   try {
     localStorage.setItem('last_emps_' + payload.job_id, payload.employees.join('\n'));
   } catch (_) {}
-
+ console.warn('Unable to save to localStorage');
+}
   const ratingLink = repoRoot + 'rate.html?job=' + encodeURIComponent(payload.job_id);
   const adminLink = repoRoot + 'admin.html?job=' + encodeURIComponent(payload.job_id);
 

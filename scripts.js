@@ -1,5 +1,5 @@
 // Apps Script /exec URL
-const API_BASE = 'https://script.google.com/macros/s/AKfycbzGUshQUlejXpdG5PxYv3RUbdQgj1aCLlHAE6e_LHdomaJ6i9slhZUE_ZBCQxvuRh4r/exec'; // <-- replace
+const API_BASE = 'https://script.google.com/macros/s/PASTE_YOUR_EXEC_URL_HERE/exec'; // <-- replace
 
 const $job = document.getElementById('jobOrder');
 const $client = document.getElementById('clientName');
@@ -9,7 +9,8 @@ const $btn = document.getElementById('generateLinkBtn');
 const $out = document.getElementById('generatedLink');
 
 function cleanEmployees(text){
-  return text.split(/\n+/).map(function(s){return s.trim();}).filter(function(x){return x;});
+  return text.split(/
++/).map(function(s){return s.trim();}).filter(function(x){return x;});
 }
 function showMessage(html, isError){
   $out.innerHTML = html;
@@ -34,7 +35,8 @@ $btn.addEventListener('click', async function(){
     employees: cleanEmployees($employees.value)
   };
 
-  try { localStorage.setItem('last_emps_'+payload.job_id, payload.employees.join('\n')); } catch(_){ }
+  try { localStorage.setItem('last_emps_'+payload.job_id, payload.employees.join('
+')); } catch(_){ }
 
   const body = new URLSearchParams();
   body.set('action','init');
@@ -46,12 +48,14 @@ $btn.addEventListener('click', async function(){
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Init failed');
 
-    // Build robust link to rate.html in same folder
-    const baseUrl = location.href.replace(/[^/]*$/, '');
-    const ratingLink = baseUrl + 'rate.html?job=' + encodeURIComponent(payload.job_id);
+    // 🔒 Hard-coded repo root to avoid double filenames / path issues
+    const repoRoot = 'https://maskill6.github.io/clientreview/';
+    const ratingLink = repoRoot + 'rate.html?job=' + encodeURIComponent(payload.job_id);
 
     showMessage('<strong>Share this link with the client:</strong><br><a href="'+ratingLink+'" target="_blank" rel="noopener">'+ratingLink+'</a>');
   } catch (e) {
+    showMessage('Error: ' + (e.message || String(e)), true);
+  } finally {
     showMessage('Error: ' + (e.message || String(e)), true);
   } finally {
     $btn.disabled = false;

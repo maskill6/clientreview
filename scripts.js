@@ -1,47 +1,32 @@
-// ====== CONFIG ======
-// 1) Put your Apps Script /exec URL here:
-const API_BASE = 'https://script.google.com/macros/s/AKfycbzGUshQUlejXpdG5PxYv3RUbdQgj1aCLlHAE6e_LHdomaJ6i9slhZUE_ZBCQxvuRh4r/exec';
+// Apps Script /exec URL
+const API_BASE = 'https://script.google.com/macros/s/PASTE_YOUR_EXEC_URL_HERE/exec'; // <-- replace
 
-// ====== DOM HOOKS ======
-const $job      = document.getElementById('jobOrder');
-const $client   = document.getElementById('clientName');
-const $email    = document.getElementById('coordinatorEmail');
-const $employees= document.getElementById('employeeList');
-const $btn      = document.getElementById('generateLinkBtn');
-const $out      = document.getElementById('generatedLink');
+const $job = document.getElementById('jobOrder');
+const $client = document.getElementById('clientName');
+const $email = document.getElementById('coordinatorEmail');
+const $employees = document.getElementById('employeeList');
+const $btn = document.getElementById('generateLinkBtn');
+const $out = document.getElementById('generatedLink');
 
-// ====== UTIL ======
-function cleanEmployees(text) {
-  return text
-    .split('\n')
-    .map(s => s.trim())
-    .filter(Boolean);
+function cleanEmployees(text){
+  return text.split(/\n+/).map(function(s){return s.trim();}).filter(function(x){return x;});
 }
-
-function showMessage(html, isError = false) {
+function showMessage(html, isError){
   $out.innerHTML = html;
   $out.style.color = isError ? '#b00020' : '';
 }
-
-function validate() {
-  if (!$job.value.trim()) return 'Please enter a Job Order #.';
-  if (!$client.value.trim()) return 'Please enter a Client Name.';
-  if (!$email.value.trim()) return 'Please enter the Coordinator Email.';
-  const list = cleanEmployees($employees.value);
-  if (list.length === 0) return 'Please add at least one employee (one per line).';
+function validate(){
+  if(!$job.value.trim()) return 'Please enter a Job Order #.';
+  if(!$client.value.trim()) return 'Please enter a Client Name.';
+  if(!$email.value.trim()) return 'Please enter the Coordinator Email.';
+  if(cleanEmployees($employees.value).length === 0) return 'Please add at least one employee (one per line).';
   return '';
 }
 
-// ====== MAIN ======
-$btn.addEventListener('click', async () => {
-  // 1) Basic validation (keep it friendly)
+$btn.addEventListener('click', async function(){
   const problem = validate();
-  if (problem) {
-    showMessage(problem, true);
-    return;
-  }
+  if (problem){ showMessage(problem, true); return; }
 
-  // 2) Build the payload the Apps Script expects
   const payload = {
     job_id: $job.value.trim(),
     client_name: $client.value.trim(),
@@ -49,51 +34,25 @@ $btn.addEventListener('click', async () => {
     employees: cleanEmployees($employees.value)
   };
 
-  // Optional: remember last employee list per job in localStorage (handy for rate page)
+  try { localStorage.setItem('last_emps_'+payload.job_id, payload.employees.join('\n')); } catch(_){ }
+
+  const body = new URLSearchParams();
+  body.set('action','init');
+  body.set('data', JSON.stringify(payload));
+
+  $btn.disabled = true; showMessage('Generating link…');
   try {
-    localStorage.setItem('last_emps_' + payload.job_id, payload.employees.join('\n'));
-  } catch (_) {}
-
-  // 3) Form-encoded POST (avoids preflight/CORS headaches on GitHub Pages)
-  const form = new URLSearchParams();
-  form.set('action', 'init');
-  form.set('data', JSON.stringify(payload));
-
-  // 4) Disable button during request
-  $btn.disabled = true;
-  showMessage('Generating link…');
-
-  try {
-    const res = await fetch(API_BASE + '?t=' + Date.now(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: form.toString()
-    });
-
-    // Apps Script always returns 200; read the JSON body for status
+    const res = await fetch(API_BASE + '?t=' + Date.now(), { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() });
     const data = await res.json();
-    if (!data.ok) {
-      throw new Error(data.error || 'Init failed');
-    }
+    if (!data.ok) throw new Error(data.error || 'Init failed');
 
-    // 5) Build the rating page link
-    //    This expects you to have a rate.html in the same repo.
-// Build a robust base URL for the same folder as index.html
-    const baseUrl = location.href.replace(/[^/]*$/, ''); 
-// Now make the link to rate.html in the same folder
-    const ratingLink = `${baseUrl}rate.html?job=${encodeURIComponent(payload.job_id)}`;
+    // Build robust link to rate.html in same folder
+    const baseUrl = location.href.replace(/[^/]*$/, '');
+    const ratingLink = baseUrl + 'rate.html?job=' + encodeURIComponent(payload.job_id);
 
-// put it on the page
-document.getElementById('generatedLink').innerHTML =
-  `<a href="${ratingLink}" target="_blank" rel="noopener">${ratingLink}</a>`;
-
-
-    showMessage(
-      `<strong>Share this link with the client:</strong><br>
-       <a href="${ratingLink}" target="_blank" rel="noopener">${ratingLink}</a>`
-    );
-  } catch (err) {
-    showMessage('Error: ' + (err.message || String(err)), true);
+    showMessage('<strong>Share this link with the client:</strong><br><a href="'+ratingLink+'" target="_blank" rel="noopener">'+ratingLink+'</a>');
+  } catch (e) {
+    showMessage('Error: ' + (e.message || String(e)), true);
   } finally {
     $btn.disabled = false;
   }

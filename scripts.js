@@ -1,5 +1,6 @@
-// 👇 This is your deployed Web App URL — same one used in rate.html now
+// Deployed Web App URL — YOUR DEPLOYMENT URL
 const API_BASE = 'https://script.google.com/macros/s/AKfycbzGUshQUlejXpdG5PxYv3RUbdQgj1aCLlHAE6e_LHdomaJ6i9slhZUE_ZBCQxvuRh4r/exec';
+const ADMIN_TOKEN = 'b7f3c9d8f6e47e2a9c4c1ee3dd28b5';
 
 const $job = document.getElementById('jobOrder');
 const $client = document.getElementById('clientName');
@@ -44,7 +45,7 @@ $btn.addEventListener('click', async function () {
   } catch (_) {}
 
   const ratingLink = `${API_BASE}?job=${encodeURIComponent(payload.job_id)}`;
-  const adminLink = `${API_BASE}?job=${encodeURIComponent(payload.job_id)}&token=b7f3c9d8f6e47e2a9c4c1ee3dd28b5&action=job`;
+  const adminLink = `${API_BASE}?job=${encodeURIComponent(payload.job_id)}&token=${ADMIN_TOKEN}&action=admin`;
 
   const body = new URLSearchParams();
   body.set('action', 'init');
@@ -55,7 +56,6 @@ $btn.addEventListener('click', async function () {
 
   let apiError = '';
   try {
-    if (!/^https?:\/\//.test(API_BASE)) throw new Error('API_BASE missing or invalid');
     const res = await fetch(API_BASE + '?t=' + Date.now(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

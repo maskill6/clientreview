@@ -6,6 +6,7 @@
   <title>Rate Employees</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
+    /* Your existing styles kept here, untouched, because they did nothing wrong */
     .employee-rating {
       display: flex;
       align-items: center;
@@ -65,43 +66,54 @@
 <body>
   <div class="container">
     <h1>Rate Each Employee</h1>
+    <div id="message" style="color: red; margin-top: 1rem;"></div>
     <form id="ratingForm"></form>
     <button type="button" id="submitRatings">Submit Ratings</button>
   </div>
 
   <script>
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbzGUshQUlejXpdG5PxYv3RUbdQgj1aCLlHAE6e_LHdomaJ6i9slhZUE_ZBCQxvuRh4r/exec'; // Replace with your Script URL
+    // ✅ CONFIGURATION
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbzGUshQUlejXpdG5PxYv3RUbdQgj1aCLlHAE6e_LHdomaJ6i9slhZUE_ZBCQxvuRh4r/exec';
     const ADMIN_TOKEN = 'b7f3c9d8f6e47e2a9c4c1ee3dd28b5';
 
+    // ✅ GET JOB ID FROM URL
     const jobId = new URLSearchParams(location.search).get('job') || '';
-    const list = document.getElementById('ratingForm');
+    const formElement = document.getElementById('ratingForm');
+    const messageElement = document.getElementById('message');
 
     async function loadEmployees() {
       if (!jobId) {
-        list.innerHTML = '<p style="color:red;">Missing job ID in URL.</p>';
+        messageElement.textContent = 'Missing job ID in URL. Please check the link.';
         return;
       }
 
+      const endpoint = `${API_BASE}?action=job&id=${encodeURIComponent(jobId)}&token=${ADMIN_TOKEN}`;
+      console.log('🔍 Fetching employee data from:', endpoint);
+
       try {
-        const res = await fetch(`${API_BASE}?action=job&id=${encodeURIComponent(jobId)}&token=b7f3c9d8f6e47e2a9c4c1ee3dd28b5`);
+        const res = await fetch(endpoint);
         const data = await res.json();
 
+        console.log('✅ Data received:', data);
+
         if (!data || !data.employees || !Array.isArray(data.employees)) {
-          list.innerHTML = '<p style="color:red;">Could not load employee list.</p>';
+          messageElement.textContent = 'Could not load employee list.';
           return;
         }
 
         buildForm(data.employees.map(e => e.employee_name));
       } catch (e) {
-        list.innerHTML = `<p style="color:red;">Error loading employees: ${e.message}</p>`;
+        console.error('❌ Fetch failed:', e);
+        messageElement.textContent = 'Error loading employee data. See console for details.';
       }
     }
 
     function buildForm(employees) {
-      document.querySelector('h1').textContent += ` (${jobId})`;
+      document.querySelector('h1').textContent += ` (Job: ${jobId})`;
 
       employees.forEach((name, index) => {
         const fieldset = document.createElement("fieldset");
+
         fieldset.innerHTML = `
           <legend class="employee-rating">
             <span class="employee-name">${name}</span>
@@ -127,13 +139,14 @@
             </select>
           </div>
         `;
-        list.appendChild(fieldset);
+        formElement.appendChild(fieldset);
       });
 
-      list.addEventListener("change", (e) => {
+      // Interactivity for follow-up fields
+      formElement.addEventListener("change", (e) => {
         if (!e.target.matches("input[type='radio']")) return;
         const idx = e.target.name.split("-")[1];
-        const val = parseInt(e.target.value);
+        const val = parseInt(e.target.value, 10);
 
         document.getElementById(`feedback-${idx}`).style.display = val <= 3 ? "block" : "none";
         document.getElementById(`rehire-${idx}`).style.display = val <= 2 ? "block" : "none";

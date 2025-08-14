@@ -1,6 +1,5 @@
-// Replace with your actual Apps Script URL
+// 👇 This is your deployed Web App URL — same one used in rate.html now
 const API_BASE = 'https://script.google.com/macros/s/AKfycbzGUshQUlejXpdG5PxYv3RUbdQgj1aCLlHAE6e_LHdomaJ6i9slhZUE_ZBCQxvuRh4r/exec';
-const finalLink = `${BASE_URL}?job=${jobId}`;
 
 const $job = document.getElementById('jobOrder');
 const $client = document.getElementById('clientName');
@@ -44,8 +43,8 @@ $btn.addEventListener('click', async function () {
     localStorage.setItem('last_emps_' + payload.job_id, payload.employees.join('\n'));
   } catch (_) {}
 
-  const ratingLink = repoRoot + 'rate.html?job=' + encodeURIComponent(payload.job_id);
-  const adminLink = repoRoot + 'admin.html?job=' + encodeURIComponent(payload.job_id);
+  const ratingLink = `${API_BASE}?job=${encodeURIComponent(payload.job_id)}`;
+  const adminLink = `${API_BASE}?job=${encodeURIComponent(payload.job_id)}&token=b7f3c9d8f6e47e2a9c4c1ee3dd28b5&action=job`;
 
   const body = new URLSearchParams();
   body.set('action', 'init');
@@ -72,12 +71,12 @@ $btn.addEventListener('click', async function () {
     $btn.disabled = false;
   }
 
- let html = `<strong>Client rating link:</strong><br>
+  let html = `<strong>Client rating link:</strong><br>
               <a href="${ratingLink}" target="_blank">${ratingLink}</a><br><br>
               <strong>Admin view:</strong><br>
               <a href="${adminLink}" target="_blank">${adminLink}</a>`;
 
-   if (apiError) {
+  if (apiError) {
     html += `<div style="color:#b00020;margin-top:1rem;">⚠️ API error: ${apiError}</div>`;
     console.warn('API init failed:', apiError, payload);
   }

@@ -1,6 +1,6 @@
 // Replace with your actual Apps Script URL
 const API_BASE = 'https://script.google.com/macros/s/AKfycbzGUshQUlejXpdG5PxYv3RUbdQgj1aCLlHAE6e_LHdomaJ6i9slhZUE_ZBCQxvuRh4r/exec';
-const repoRoot = 'https://maskill6.github.io/clientreview/';
+const finalLink = `${BASE_URL}?job=${jobId}`;
 
 const $job = document.getElementById('jobOrder');
 const $client = document.getElementById('clientName');
